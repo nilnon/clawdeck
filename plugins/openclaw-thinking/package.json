@@ -1,0 +1,75 @@
+{
+  "name": "openclaw-thinking",
+  "version": "2026.4.1",
+  "description": "Real-time thinking phase tracking plugin - fills WebSocket event blind spots",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "openclaw": {
+    "extensions": [
+      "./dist/index.js"
+    ],
+    "hooks": {
+      "before_model_resolve": "./dist/index.js",
+      "before_prompt_build": "./dist/index.js",
+      "before_agent_start": "./dist/index.js",
+      "agent_end": "./dist/index.js",
+      "llm_input": "./dist/index.js",
+      "llm_output": "./dist/index.js",
+      "before_tool_call": "./dist/index.js",
+      "after_tool_call": "./dist/index.js",
+      "tool_result_persist": "./dist/index.js",
+      "message_received": "./dist/index.js",
+      "message_sending": "./dist/index.js",
+      "message_sent": "./dist/index.js",
+      "before_message_write": "./dist/index.js",
+      "before_compaction": "./dist/index.js",
+      "after_compaction": "./dist/index.js",
+      "before_reset": "./dist/index.js",
+      "session_start": "./dist/index.js",
+      "session_end": "./dist/index.js",
+      "subagent_spawning": "./dist/index.js",
+      "subagent_delivery_target": "./dist/index.js",
+      "subagent_spawned": "./dist/index.js",
+      "subagent_ended": "./dist/index.js",
+      "gateway_start": "./dist/index.js",
+      "gateway_stop": "./dist/index.js",
+      "inbound_claim": "./dist/index.js",
+      "before_dispatch": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist/",
+    "openclaw.plugin.json",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rimraf dist"
+  },
+  "keywords": [
+    "openclaw",
+    "plugin",
+    "thinking",
+    "observability",
+    "phase-tracking"
+  ],
+  "author": "OpenClaw Team",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0",
+    "rimraf": "^5.0.0"
+  },
+  "peerDependencies": {
+    "@duckdb/node-api": ">=1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@duckdb/node-api": {
+      "optional": true
+    }
+  }
+}

@@ -1,0 +1,40 @@
+services:
+  clawdeck:
+    build: .
+    container_name: clawdeck
+    ports:
+      - "3080:3080"
+    environment:
+      - PORT=3080
+      - DATABASE_PATH=./data/clawdeck.db
+      - OPENCLAW_GATEWAY_URL=ws://openclaw:18789
+      - HERMES_ACP_URL=http://hermes:8478
+    volumes:
+      - clawdeck-data:/app/data
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3080/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  openclaw:
+    image: openclaw/openclaw:latest
+    container_name: openclaw-nerve
+    ports:
+      - "18789:18789"
+    profiles:
+      - with-openclaw
+    restart: unless-stopped
+
+  hermes:
+    image: nousresearch/hermes-agent:latest
+    container_name: hermes-agent
+    ports:
+      - "8478:8478"
+    profiles:
+      - with-hermes
+    restart: unless-stopped
+
+volumes:
+  clawdeck-data:

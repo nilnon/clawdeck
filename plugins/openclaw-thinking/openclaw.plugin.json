@@ -1,0 +1,235 @@
+{
+  "id": "openclaw-thinking",
+  "name": "openclaw-thinking",
+  "version": "2026.4.1",
+  "description": "Real-time thinking phase tracking plugin - fills WebSocket event blind spots with fine-grained stage information",
+  "entry": "dist/index.js",
+  "slots": [
+    "before_model_resolve",
+    "before_prompt_build",
+    "before_agent_start",
+    "agent_end",
+    "llm_input",
+    "llm_output",
+    "before_tool_call",
+    "after_tool_call",
+    "tool_result_persist",
+    "message_received",
+    "message_sending",
+    "message_sent",
+    "before_message_write",
+    "before_compaction",
+    "after_compaction",
+    "before_reset",
+    "session_start",
+    "session_end",
+    "subagent_spawning",
+    "subagent_delivery_target",
+    "subagent_spawned",
+    "subagent_ended",
+    "gateway_start",
+    "gateway_stop",
+    "inbound_claim",
+    "before_dispatch"
+  ],
+  "uiHints": {
+    "modules.phaseTracking": {
+      "label": "Enable Phase Tracking",
+      "help": "Track thinking phases through hooks"
+    },
+    "modules.realtimeBroadcast": {
+      "label": "Enable Realtime Broadcast",
+      "help": "Broadcast phase changes to clients via Gateway Method or SSE"
+    },
+    "modules.storage": {
+      "label": "Enable Storage",
+      "help": "Persist phase history to database (DuckDB or MySQL)"
+    },
+    "modules.security": {
+      "label": "Enable Security Scanning",
+      "help": "Scan for security issues in tool outputs"
+    },
+    "broadcast.mode": {
+      "label": "Broadcast Mode",
+      "help": "How to broadcast phase changes: gateway_method, sse, websocket, or both"
+    },
+    "phaseTracking.historyRetention": {
+      "label": "History Retention (ms)",
+      "help": "How long to keep phase history in memory",
+      "advanced": true
+    },
+    "storage.mode": {
+      "label": "Storage Mode",
+      "help": "local = embedded DuckDB | remote = external MySQL"
+    },
+    "storage.duckdb.path": {
+      "label": "DuckDB Path",
+      "placeholder": "~/.openclaw/data/thinking.duckdb",
+      "help": "Local database file path"
+    },
+    "storage.mysql.host": {
+      "label": "MySQL Host",
+      "placeholder": "localhost"
+    },
+    "storage.mysql.port": {
+      "label": "MySQL Port",
+      "placeholder": "3306"
+    },
+    "storage.mysql.user": {
+      "label": "MySQL User",
+      "placeholder": "root"
+    },
+    "storage.mysql.password": {
+      "label": "MySQL Password",
+      "sensitive": true,
+      "placeholder": "••••••••"
+    },
+    "storage.mysql.database": {
+      "label": "MySQL Database",
+      "placeholder": "openclaw_thinking"
+    },
+    "timeouts.model_resolving": {
+      "label": "Model Resolve Timeout (ms)",
+      "placeholder": "5000",
+      "advanced": true
+    },
+    "timeouts.prompt_building": {
+      "label": "Prompt Build Timeout (ms)",
+      "placeholder": "10000",
+      "advanced": true
+    },
+    "timeouts.llm_connecting": {
+      "label": "LLM Connect Timeout (ms)",
+      "placeholder": "30000",
+      "advanced": true
+    },
+    "timeouts.thinking": {
+      "label": "Thinking Timeout (ms)",
+      "placeholder": "120000",
+      "advanced": true
+    },
+    "ui.basePath": {
+      "label": "UI Base Path",
+      "placeholder": "/plugins/thinking",
+      "advanced": true
+    }
+  },
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "modules": {
+        "type": "object",
+        "properties": {
+          "phaseTracking": { "type": "boolean", "default": true },
+          "realtimeBroadcast": { "type": "boolean", "default": true },
+          "storage": { "type": "boolean", "default": true },
+          "security": { "type": "boolean", "default": true },
+          "webDashboard": { "type": "boolean", "default": true }
+        }
+      },
+      "phaseTracking": {
+        "type": "object",
+        "properties": {
+          "historyRetention": { "type": "number", "default": 3600000 },
+          "maxHistoryPerSession": { "type": "number", "default": 100 }
+        }
+      },
+      "broadcast": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": ["gateway_method", "sse", "websocket", "both"],
+            "default": "gateway_method"
+          },
+          "sse": {
+            "type": "object",
+            "properties": {
+              "heartbeatInterval": { "type": "number", "default": 15000 }
+            }
+          }
+        }
+      },
+      "storage": {
+        "type": "object",
+        "properties": {
+          "enabled": { "type": "boolean", "default": true },
+          "mode": { "type": "string", "enum": ["local", "remote"], "default": "local" },
+          "duckdb": {
+            "type": "object",
+            "properties": {
+              "path": { "type": "string", "default": "~/.openclaw/data/thinking.duckdb" }
+            }
+          },
+          "mysql": {
+            "type": "object",
+            "properties": {
+              "host": { "type": "string", "default": "localhost" },
+              "port": { "type": "number", "default": 3306 },
+              "user": { "type": "string", "default": "root" },
+              "password": { "type": "string", "default": "" },
+              "database": { "type": "string", "default": "openclaw_thinking" }
+            }
+          },
+          "buffer": {
+            "type": "object",
+            "properties": {
+              "batchSize": { "type": "number", "default": 50, "minimum": 1, "maximum": 1000 },
+              "flushIntervalMs": { "type": "number", "default": 5000, "minimum": 1000, "maximum": 300000 }
+            }
+          },
+          "retention": {
+            "type": "object",
+            "properties": {
+              "actions": { "type": "number", "default": 30 },
+              "sessions": { "type": "number", "default": 90 }
+            }
+          }
+        }
+      },
+      "security": {
+        "type": "object",
+        "properties": {
+          "enabled": { "type": "boolean", "default": true },
+          "rules": {
+            "type": "object",
+            "properties": {
+              "secretLeakage": { "type": "boolean", "default": true },
+              "highRiskOps": { "type": "boolean", "default": true },
+              "dataExfiltration": { "type": "boolean", "default": true },
+              "promptInjection": { "type": "boolean", "default": false },
+              "customRegex": { "type": "boolean", "default": false },
+              "chainDetection": { "type": "boolean", "default": false }
+            }
+          },
+          "domainWhitelist": {
+            "type": "array",
+            "items": { "type": "string" },
+            "default": []
+          }
+        }
+      },
+      "timeouts": {
+        "type": "object",
+        "properties": {
+          "model_resolving": { "type": "number", "default": 5000 },
+          "prompt_building": { "type": "number", "default": 10000 },
+          "llm_connecting": { "type": "number", "default": 30000 },
+          "llm_first_token": { "type": "number", "default": 60000 },
+          "thinking": { "type": "number", "default": 120000 },
+          "generating": { "type": "number", "default": 60000 },
+          "tool_calling": { "type": "number", "default": 30000 },
+          "tool_executing": { "type": "number", "default": 120000 }
+        }
+      },
+      "ui": {
+        "type": "object",
+        "properties": {
+          "accessToken": { "type": "string", "default": "" },
+          "basePath": { "type": "string", "default": "/plugins/thinking" }
+        }
+      }
+    }
+  }
+}

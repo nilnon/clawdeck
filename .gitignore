@@ -1,0 +1,9 @@
+node_modules/
+dist/
+server-dist/
+data/*.db
+.env
+*.log
+.DS_Store
+.vscode/
+.idea/
