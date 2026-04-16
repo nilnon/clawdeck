@@ -1,110 +1,104 @@
 import { spawn, type ChildProcess } from 'node:child_process'
 import type { ChatChunk } from '@shared/types.js'
-
-type OutputHandler = (line: string) => void
+import { randomUUID } from 'node:crypto'
 
 export class CliBridge {
-  private process: ChildProcess | null = null
   private cliPath = 'hermes'
-  private outputHandlers = new Set<OutputHandler>()
-  private _running = false
-  private buffer = ''
+
+  constructor(cliPath?: string) {
+    this.cliPath = cliPath || 'hermes'
+  }
 
   get isRunning(): boolean {
-    return this._running && this.process !== null && !this.process.killed
+    // 对于单次命令模式，总是返回 true
+    return true
   }
 
-  onOutput(handler: OutputHandler): () => void {
-    this.outputHandlers.add(handler)
-    return () => { this.outputHandlers.delete(handler) }
-  }
+  async *chatStream(message: string): AsyncIterable<ChatChunk> {
+    const chunkId = randomUUID()
+    const startTime = Date.now()
 
-  start(cliPath?: string, args?: string[]): void {
-    if (this.isRunning) return
-    this.cliPath = cliPath || this.cliPath || 'hermes'
-    const cmdArgs = args || ['chat', '--non-interactive']
+    console.log(`[CliBridge] Starting chat with message: ${message.substring(0, 50)}...`)
 
-    this.process = spawn(this.cliPath, cmdArgs, {
+    // 使用 spawn 执行 hermes chat 命令，将消息通过 stdin 传入
+    const proc = spawn(this.cliPath, ['chat'], {
       stdio: ['pipe', 'pipe', 'pipe'],
       env: { ...process.env },
     })
 
-    this._running = true
+    let output = ''
+    let stderrOutput = ''
 
-    this.process.stdout?.on('data', (chunk: Buffer) => {
-      const text = chunk.toString()
-      this.buffer += text
-      const lines = this.buffer.split('\n')
-      this.buffer = lines.pop() || ''
-
-      for (const line of lines) {
-        const trimmed = line.trim()
-        if (trimmed) {
-          for (const handler of this.outputHandlers) {
-            handler(trimmed)
-          }
-        }
-      }
+    // 收集 stdout
+    proc.stdout?.on('data', (chunk: Buffer) => {
+      output += chunk.toString()
     })
 
-    this.process.stderr?.on('data', (chunk: Buffer) => {
-      const text = chunk.toString()
-      for (const handler of this.outputHandlers) {
-        handler(`[STDERR] ${text}`)
-      }
+    // 收集 stderr
+    proc.stderr?.on('data', (chunk: Buffer) => {
+      stderrOutput += chunk.toString()
     })
 
-    this.process.on('exit', () => {
-      this._running = false
-      this.process = null
-    })
-
-    this.process.on('error', (err: Error) => {
-      this._running = false
-      console.error(`[CliBridge] Process error:`, err.message)
-    })
-
-    console.log(`[CliBridge] Started: ${this.cliPath} ${cmdArgs.join(' ')}`)
-  }
-
-  stop(): void {
-    if (this.process) {
-      this.process.kill('SIGTERM')
-      setTimeout(() => {
-        if (this.process && !this.process.killed) {
-          this.process.kill('SIGKILL')
-        }
-      }, 5000).unref()
+    // 发送消息到 stdin
+    try {
+      proc.stdin?.write(message + '\n')
+      proc.stdin?.end()
+    } catch (err) {
+      console.error(`[CliBridge] Error writing to stdin:`, err)
     }
-    this._running = false
-  }
 
-  sendMessage(message: string): void {
-    if (!this.process?.stdin) {
-      throw new Error('CLI bridge not running or stdin not available')
+    // 等待进程完成
+    const exitCode = await new Promise<number | null>((resolve) => {
+      proc.on('close', (code) => {
+        resolve(code)
+      })
+      proc.on('error', (err) => {
+        console.error(`[CliBridge] Process error:`, err)
+        resolve(-1)
+      })
+    })
+
+    console.log(`[CliBridge] Process exited with code: ${exitCode}`)
+    console.log(`[CliBridge] Output length: ${output.length}`)
+    console.log(`[CliBridge] Stderr: ${stderrOutput.substring(0, 200)}`)
+
+    if (exitCode !== 0 && exitCode !== null) {
+      yield {
+        id: chunkId,
+        role: 'assistant',
+        content: `Error: Hermes CLI exited with code ${exitCode}\n${stderrOutput}`,
+        done: true,
+        timestamp: Date.now(),
+      }
+      return
     }
-    this.process.stdin.write(message + '\n')
-  }
 
-  async *chatStream(message: string): AsyncIterable<ChatChunk> {
-    const chunkId = crypto.randomUUID()
+    // 返回输出
+    if (output.trim()) {
+      yield {
+        id: chunkId,
+        role: 'assistant',
+        content: output.trim(),
+        done: false,
+        timestamp: Date.now(),
+      }
+    }
 
     yield {
       id: chunkId,
       role: 'assistant',
       content: '',
-      done: false,
-      timestamp: Date.now(),
-    }
-
-    this.sendMessage(message)
-
-    yield {
-      id: chunkId,
-      role: 'assistant',
-      content: message,
       done: true,
       timestamp: Date.now(),
     }
+  }
+
+  start(): void {
+    // 单次命令模式，不需要保持进程运行
+    console.log(`[CliBridge] Single-command mode, no persistent process needed`)
+  }
+
+  stop(): void {
+    // 单次命令模式，不需要停止进程
   }
 }

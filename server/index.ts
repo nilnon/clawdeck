@@ -9,6 +9,7 @@ import chatRoute from './routes/chat.js'
 import sessionsRoute from './routes/sessions.js'
 import toolsRoute from './routes/tools.js'
 import modelsRoute from './routes/models.js'
+import compareRoute from './routes/compare.js'
 import { WsGateway } from './ws/gateway.js'
 import { mkdirSync } from 'node:fs'
 import { dirname } from 'node:path'
@@ -94,6 +95,7 @@ app.route('/api/chat', chatRoute)
 app.route('/api/sessions', sessionsRoute)
 app.route('/api/tools', toolsRoute)
 app.route('/api/models', modelsRoute)
+app.route('/api/compare', compareRoute)
 
 const server = createServer()
 const wsGateway = new WsGateway()

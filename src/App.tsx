@@ -5,6 +5,7 @@ import { SessionProvider } from './contexts/SessionContext'
 import MainLayout from './layouts/MainLayout'
 import DashboardSettingsPage from './pages/DashboardSettingsPage'
 import ChatPage from './pages/ChatPage'
+import ComparePage from './pages/ComparePage'
 import { useEffect } from 'react'
 
 function ChatWithSession() {
@@ -49,6 +50,7 @@ export default function App() {
             <Route element={<MainLayout />}>
               <Route path="/" element={<DashboardSettingsPage />} />
               <Route path="/chat/:agentId?" element={<ChatWithSession />} />
+              <Route path="/compare" element={<ComparePage />} />
             </Route>
           </Routes>
         </BrowserRouter>

@@ -1,10 +1,11 @@
 import { Outlet, Link, useLocation } from 'react-router-dom'
-import { Settings, MessageSquare, Terminal, Sun, Moon, Monitor, Bot } from 'lucide-react'
+import { Settings, MessageSquare, Terminal, Sun, Moon, Monitor, Bot, GitCompare } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useTheme } from '@/contexts/ThemeContext'
 
 const topNavItems = [
   { path: '/chat', label: 'AGENT', icon: Bot },
+  { path: '/compare', label: '对比', icon: GitCompare },
   { path: '/', label: '设置', icon: Settings },
 ]
 
